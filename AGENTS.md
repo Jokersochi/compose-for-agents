@@ -61,3 +61,36 @@ Run only checks relevant to touched files.
 
 - Make focused commits with descriptive commit messages.
 - Include brief rationale in commit bodies when changes are not obvious.
+
+## Cursor Cloud specific instructions
+
+### Environment overview
+
+This is a Docker-first monorepo. All demos run via `docker compose up --build` from their
+directory. Docker Engine (with fuse-overlayfs driver), Docker Compose, `task` (go-task), `uv`,
+Go 1.24+, Java 21, and Node 22 are pre-installed.
+
+### Starting Docker
+
+Docker daemon must be started before any compose commands:
+
+```sh
+sudo dockerd &>/tmp/dockerd.log &
+sleep 3
+sudo chmod 666 /var/run/docker.sock
+```
+
+### Key caveats
+
+- **Docker Model Runner is unavailable** in this environment (no GPU, no Docker Desktop). Demos
+  that depend on local LLM inference (`models:` section in compose files) will fail at the agent
+  service. Database/importer services and `docker compose build` still work.
+- **Go tests** in `langchaingo/` require Docker Model Runner and will hang/timeout. Use
+  `go build ./...` and `go vet ./...` for validation instead.
+- **Python demos** use either `uv` or `poetry` as their package manager. Run `uv run ruff check`,
+  `uv run ruff format --check`, and `uv run pyright` from the demo directory. For `crew-ai`, use
+  `poetry run` instead. `uv` automatically downloads Python 3.13 if needed.
+- **Repo-wide linting** (`task lint`) runs markdownlint and yamllint inside Docker containers
+  built from `Dockerfile.tools`. First run builds the images.
+- **Rust toolchain**: set `rustup default stable` if builds of Python dependencies like `rpds-py`
+  fail with edition2024 errors (Cargo version too old).
